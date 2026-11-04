@@ -45,3 +45,8 @@ class AdminTrainingEditStates(StatesGroup):
     waiting_date = State()
     waiting_city_macro = State()
     waiting_city = State()
+
+
+class AdminTrainingCancelStates(StatesGroup):
+    """Состояния отмены тренинга."""
+    waiting_reason = State()

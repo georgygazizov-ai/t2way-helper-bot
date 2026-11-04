@@ -101,3 +101,25 @@ class TrainingRepo:
         """Удаляет всех ведущих тренинга."""
         query = "DELETE FROM training_leads WHERE training_id = ?"
         await self.db.execute(query, (training_id,))
+
+    async def cancel_training(
+        self,
+        training_id: int,
+        cancelled_by: int,
+        reason: str | None = None,
+    ) -> None:
+        """Отменяет тренинг и сохраняет информацию об отмене."""
+
+        query = """
+            UPDATE trainings
+            SET status = 'cancelled',
+                cancelled_by = ?,
+                cancellation_reason = ?,
+                cancelled_at = CURRENT_TIMESTAMP,
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+        """
+
+        await self.db.execute(query, (cancelled_by, reason, training_id))
+
+        logger.info("[AUDIT] Тренинг %s отменён пользователем %s", training_id, cancelled_by)

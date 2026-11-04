@@ -16,6 +16,10 @@ from services.training_service import (
 )
 from states.admin_states import AdminTrainingEditStates, AdminTrainingStates
 from utils.ui_messages import clear_last_bot_message, delete_callback_message, send_menu
+from keyboards.admin.trainings_kb import get_training_cancel_kb, get_cancel_reason_kb
+from services.profile_service import get_full_name
+from services.training_service import notify_training_cancellation
+from states.admin_states import AdminTrainingCancelStates
 
 
 logger = logging.getLogger(__name__)
@@ -585,5 +589,142 @@ def register_trainings_handlers(
             event,
             context,
             "Город тренинга обновлён.",
+            trainings_kb.get_trainings_menu_kb(),
+        )
+
+    # === ОТМЕНА ТРЕНИНГА ===
+
+    @dp.message_callback(F.callback.payload.startswith("train:cancel:"))
+    async def cb_cancel_training(event: MessageCallback, context: MemoryContext, current_user):
+        """Начинает процесс отмены тренинга."""
+
+        training_id = int(event.callback.payload.split(":")[-1])
+        await delete_callback_message(event)
+
+        training = await training_repo.get_by_id(training_id)
+
+        if training is None:
+            await send_menu(
+                event,
+                context,
+                "Тренинг не найден.",
+                trainings_kb.get_trainings_menu_kb(),
+            )
+            return
+
+        if training["status"] != "assigned":
+            await send_menu(
+                event,
+                context,
+                "Можно отменить только назначенный тренинг.",
+                trainings_kb.get_trainings_menu_kb(),
+            )
+            return
+
+        await send_menu(
+            event,
+            context,
+            f"Вы уверены, что хотите отменить тренинг ID {training_id}?",
+            get_training_cancel_kb(training_id),
+        )
+
+    @dp.message_callback(F.callback.payload.startswith("train:cancel_confirm:"))
+    async def cb_cancel_confirm(event: MessageCallback, context: MemoryContext, current_user):
+        """Подтверждение отмены и запрос причины."""
+
+        training_id = int(event.callback.payload.split(":")[-1])
+        await delete_callback_message(event)
+
+        await context.update_data(cancel_training_id=training_id)
+        await context.set_state(AdminTrainingCancelStates.waiting_reason)
+
+        await send_menu(
+            event,
+            context,
+            "Введите причину отмены (или нажмите 'Без причины'):",
+            get_cancel_reason_kb(),
+        )
+
+    @dp.message_created(AdminTrainingCancelStates.waiting_reason, F.message.body.text)
+    async def fsm_cancel_reason(event: MessageCreated, context: MemoryContext, current_user):
+        """Получение причины отмены."""
+
+        await clear_last_bot_message(context)
+
+        reason = event.message.body.text.strip()
+
+        data = await context.get_data()
+        training_id = data.get("cancel_training_id")
+
+        if not training_id:
+            await context.clear()
+            await send_menu(
+                event,
+                context,
+                "Ошибка контекста.",
+                trainings_kb.get_trainings_menu_kb(),
+            )
+            return
+
+        await training_repo.cancel_training(training_id, current_user.user_id, reason)
+
+        await notify_training_cancellation(
+            bot,
+            training_repo,
+            user_repo,
+            training_id,
+            reason,
+            get_full_name(current_user),
+        )
+
+        await context.clear()
+
+        logger.info("[AUDIT] Тренинг %s отменён с причиной", training_id)
+
+        await send_menu(
+            event,
+            context,
+            f"Тренинг ID {training_id} отменён.",
+            trainings_kb.get_trainings_menu_kb(),
+        )
+
+    @dp.message_callback(AdminTrainingCancelStates.waiting_reason, F.callback.payload == "train:cancel_no_reason")
+    async def cb_cancel_no_reason(event: MessageCallback, context: MemoryContext, current_user):
+        """Отмена без указания причины."""
+
+        await delete_callback_message(event)
+
+        data = await context.get_data()
+        training_id = data.get("cancel_training_id")
+
+        if not training_id:
+            await context.clear()
+            await send_menu(
+                event,
+                context,
+                "Ошибка контекста.",
+                trainings_kb.get_trainings_menu_kb(),
+            )
+            return
+
+        await training_repo.cancel_training(training_id, current_user.user_id, None)
+
+        await notify_training_cancellation(
+            bot,
+            training_repo,
+            user_repo,
+            training_id,
+            None,
+            get_full_name(current_user),
+        )
+
+        await context.clear()
+
+        logger.info("[AUDIT] Тренинг %s отменён без причины", training_id)
+
+        await send_menu(
+            event,
+            context,
+            f"Тренинг ID {training_id} отменён.",
             trainings_kb.get_trainings_menu_kb(),
         )

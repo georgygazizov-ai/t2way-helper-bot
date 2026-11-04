@@ -137,3 +137,33 @@ def get_cancel_kb():
     builder.row(CallbackButton(text="« Отмена", payload="train:menu"))
 
     return builder.as_markup()
+
+
+def get_training_cancel_kb(training_id: int):
+    """Кнопки подтверждения отмены тренинга."""
+
+    builder = InlineKeyboardBuilder()
+
+    builder.row(
+        CallbackButton(
+            text="Да, отменить",
+            payload=f"train:cancel_confirm:{training_id}",
+        )
+    )
+    builder.row(
+        CallbackButton(text="Нет, не отменять", payload=f"train:view:{training_id}")
+    )
+
+    return builder.as_markup()
+
+
+def get_cancel_reason_kb():
+    """Кнопка пропуска причины отмены."""
+
+    builder = InlineKeyboardBuilder()
+
+    builder.row(
+        CallbackButton(text="Без причины", payload="train:cancel_no_reason")
+    )
+
+    return builder.as_markup()
