@@ -1,0 +1,8 @@
+maxapi
+aiosqlite
+python-dotenv
+APScheduler
+matplotlib
+Pillow
+tzdata
+python-dateutil
