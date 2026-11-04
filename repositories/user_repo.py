@@ -287,3 +287,20 @@ class UserRepo:
         """
 
         await self.db.execute(query, (chat_id, user_id))
+
+    async def get_all_trainers(self) -> list[User]:
+        """
+        Возвращает всех активных тренеров и администраторов.
+        Используется для выбора ведущих тренинга.
+        """
+
+        query = """
+            SELECT *
+            FROM users
+            WHERE role IN ('trainer', 'admin')
+              AND status = 'active'
+            ORDER BY last_name, first_name
+        """
+
+        rows = await self.db.fetchall(query)
+        return [self._row_to_model(row) for row in rows]

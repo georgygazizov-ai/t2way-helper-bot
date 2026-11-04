@@ -29,3 +29,19 @@ class AdminProfileFormStates(StatesGroup):
 class AdminRoleStates(StatesGroup):
     """Состояния поиска пользователя для смены роли."""
     waiting_last_name = State()
+
+
+class AdminTrainingStates(StatesGroup):
+    """Состояния создания тренинга."""
+    waiting_date = State()
+    waiting_format = State()
+    waiting_macro_region = State()
+    waiting_city = State()
+    waiting_leads = State()
+
+
+class AdminTrainingEditStates(StatesGroup):
+    """Состояния редактирования тренинга."""
+    waiting_date = State()
+    waiting_city_macro = State()
+    waiting_city = State()

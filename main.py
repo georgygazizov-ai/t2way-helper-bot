@@ -13,11 +13,13 @@ from handlers.admin.cities_handler import register_spravochnik_handlers
 from handlers.admin.profile_admin_handler import register_profile_admin_handlers
 from handlers.admin.profile_admin_form_handler import register_profile_admin_form_handlers
 from handlers.admin.roles_handler import register_roles_handlers
+from handlers.admin.trainings_handler import register_trainings_handlers
 from middlewares.auth_middleware import AuthMiddleware
 from middlewares.role_middleware import RoleMiddleware
 from repositories.user_repo import UserRepo
 from repositories.macro_region_repo import MacroRegionRepo
 from repositories.city_repo import CityRepo
+from repositories.training_repo import TrainingRepo
 from services.bootstrap_service import ensure_root_users
 from services.membership_service import MembershipService
 from utils.logger import setup_logging
@@ -50,6 +52,7 @@ async def main() -> None:
         user_repo = UserRepo(db)
         macro_repo = MacroRegionRepo(db)
         city_repo = CityRepo(db)
+        training_repo = TrainingRepo(db)
 
         await ensure_root_users(user_repo, settings)
 
@@ -70,6 +73,7 @@ async def main() -> None:
         register_profile_admin_form_handlers(dp, bot, user_repo, city_repo, macro_repo)
         register_user_profile_handlers(dp, user_repo, city_repo, macro_repo)
         register_roles_handlers(dp, bot, user_repo)
+        register_trainings_handlers(dp, bot, training_repo, user_repo, city_repo, macro_repo)
 
         logger.info("[SYSTEM] Обработчики зарегистрированы")
         logger.info("[SYSTEM] Запуск polling")
