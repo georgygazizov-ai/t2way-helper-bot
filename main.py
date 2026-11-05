@@ -31,6 +31,8 @@ from utils.time_utils import now_utc_str
 from jobs.birthday_jobs import register_birthday_jobs, send_birthdays
 from repositories.daily_log_repo import DailyLogRepo
 from jobs.backup_jobs import backup_if_missing, register_backup_jobs
+from handlers.common.stats_handler import register_stats_handlers
+from repositories.report_repo import ReportRepo
 
 
 logger = logging.getLogger(__name__)
@@ -63,6 +65,7 @@ async def main() -> None:
         training_repo = TrainingRepo(db)
         reminder_repo = ReminderRepo(db)
         daily_log_repo = DailyLogRepo(db)
+        report_repo = ReportRepo(db)
 
         # Планировщик фоновых задач: напоминания, авто-статусы, бэкапы.
         scheduler = create_scheduler(settings.timezone)
@@ -137,6 +140,7 @@ async def main() -> None:
         await backup_if_missing(db, settings)
 
         register_my_trainings_handlers(dp, training_repo, city_repo, macro_repo, settings.timezone)
+        register_stats_handlers(dp, bot, report_repo, settings)
 
         logger.info("[SYSTEM] Обработчики зарегистрированы")
         logger.info("[SYSTEM] Запуск polling")

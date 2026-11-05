@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime
 import re
 
 
@@ -65,3 +65,30 @@ def parse_birth_date(value: str) -> tuple[int, int, int | None]:
         raise ValueError("Год рождения должен быть больше 1900.")
 
     return day, month, year
+
+
+def parse_date_to_iso(value: str) -> str:
+    """
+    Проверяет дату в формате ДД.ММ.ГГГГ.
+    Возвращает строку YYYY-MM-DD для БД и сравнений.
+    """
+
+    value = value.strip()
+    parts = value.split(".")
+
+    if len(parts) != 3:
+        raise ValueError("Дата должна быть в формате ДД.ММ.ГГГГ.")
+
+    if not all(part.isdigit() for part in parts):
+        raise ValueError("Дата должна содержать только цифры и точки.")
+
+    day = int(parts[0])
+    month = int(parts[1])
+    year = int(parts[2])
+
+    try:
+        date_obj = datetime(year, month, day)
+    except ValueError:
+        raise ValueError("Некорректная дата.")
+
+    return date_obj.strftime("%Y-%m-%d")
