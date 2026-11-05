@@ -5,7 +5,7 @@ from repositories.reminder_repo import ReminderRepo
 from repositories.training_repo import TrainingRepo
 from repositories.user_repo import UserRepo
 from services.training_service import format_lead_name, format_training_date
-from utils.time_utils import now_utc_str
+from utils.time_utils import now_utc_str, today_str_in_tz
 
 
 logger = logging.getLogger(__name__)
@@ -86,6 +86,31 @@ async def send_due_reminders(
         )
 
 
+async def auto_conduct_trainings(
+    training_repo: TrainingRepo,
+    timezone_name: str,
+) -> None:
+    """
+    Переводит просроченные назначенные тренинги в статус «Проведён».
+
+    Вызывается при старте бота (исправление после простоя)
+    и каждую ночь в 00:05 по Москве.
+    """
+
+    today = today_str_in_tz(timezone_name)
+
+    trainings = await training_repo.get_assigned_before(today)
+
+    for training in trainings:
+        await training_repo.mark_conducted(training["id"])
+
+    if trainings:
+        logger.info(
+            "[SYSTEM] Автоматически переведено в 'conducted': %s тренингов",
+            len(trainings),
+        )
+
+
 def register_training_jobs(
     scheduler,
     bot,
@@ -93,6 +118,7 @@ def register_training_jobs(
     user_repo: UserRepo,
     training_repo: TrainingRepo,
     city_repo: CityRepo,
+    timezone_name: str,
 ) -> None:
     """
     Регистрирует фоновые задачи по тренингам в планировщике.
@@ -115,4 +141,22 @@ def register_training_jobs(
         replace_existing=True,
     )
 
-    logger.info("[SYSTEM] Задача напоминаний зарегистрирована (каждую минуту)")
+    scheduler.add_job(
+        func=auto_conduct_trainings,
+        trigger="cron",
+        hour=0,
+        minute=5,
+        kwargs={
+            "training_repo": training_repo,
+            "timezone_name": timezone_name,
+        },
+        id="auto_conduct_trainings",
+        name="Авто-перевод тренингов в проведённые",
+        max_instances=1,
+        replace_existing=True,
+    )
+
+    logger.info(
+        "[SYSTEM] Задачи зарегистрированы: напоминания (каждую минуту), "
+        "авто-статусы (ежедневно 00:05 МСК)"
+    )

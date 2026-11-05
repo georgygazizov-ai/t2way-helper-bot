@@ -25,7 +25,7 @@ from services.membership_service import MembershipService
 from utils.logger import setup_logging
 from jobs.scheduler import create_scheduler
 from repositories.reminder_repo import ReminderRepo
-from jobs.training_jobs import register_training_jobs
+from jobs.training_jobs import auto_conduct_trainings, register_training_jobs
 from utils.time_utils import now_utc_str
 
 
@@ -72,6 +72,10 @@ async def main() -> None:
                 missed,
             )
 
+        # Исправляем расхождения после простоя:
+        # просроченные тренинги переводим в «Проведён».
+        await auto_conduct_trainings(training_repo, settings.timezone)
+
         await ensure_root_users(user_repo, settings)
 
         bot = Bot(token=settings.bot_token)
@@ -108,6 +112,7 @@ async def main() -> None:
             user_repo=user_repo,
             training_repo=training_repo,
             city_repo=city_repo,
+            timezone_name=settings.timezone,
         )
 
         logger.info("[SYSTEM] Обработчики зарегистрированы")

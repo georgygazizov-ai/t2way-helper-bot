@@ -123,3 +123,38 @@ class TrainingRepo:
         await self.db.execute(query, (cancelled_by, reason, training_id))
 
         logger.info("[AUDIT] Тренинг %s отменён пользователем %s", training_id, cancelled_by)
+
+    async def get_assigned_before(self, date_str: str) -> list:
+        """
+        Возвращает назначенные тренинги с датой раньше указанной.
+        Используется для авто-перевода в «Проведён».
+        """
+
+        query = """
+            SELECT *
+            FROM trainings
+            WHERE status = 'assigned'
+              AND date < ?
+            ORDER BY date
+        """
+
+        return await self.db.fetchall(query, (date_str,))
+
+    async def mark_conducted(self, training_id: int) -> None:
+        """
+        Переводит тренинг в статус «Проведён».
+        """
+
+        query = """
+            UPDATE trainings
+            SET status = 'conducted',
+                updated_at = CURRENT_TIMESTAMP
+            WHERE id = ?
+        """
+
+        await self.db.execute(query, (training_id,))
+
+        logger.info(
+            "[AUDIT] Тренинг %s автоматически переведён в статус 'conducted'",
+            training_id,
+        )

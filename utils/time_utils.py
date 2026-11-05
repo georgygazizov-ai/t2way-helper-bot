@@ -34,3 +34,11 @@ def reminder_utc_str_for_date(date_str: str, timezone_name: str) -> str | None:
         return None
 
     return utc_dt.strftime(DT_FORMAT)
+
+
+def today_str_in_tz(timezone_name: str) -> str:
+    """
+    Текущая дата в указанном часовом поясе в формате YYYY-MM-DD.
+    """
+
+    return datetime.now(ZoneInfo(timezone_name)).strftime("%Y-%m-%d")
