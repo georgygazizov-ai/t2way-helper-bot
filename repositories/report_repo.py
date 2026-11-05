@@ -135,3 +135,43 @@ class ReportRepo:
         """
 
         return await self.db.fetchall(query, params)
+
+    async def get_conducted_years(self) -> list[str]:
+        """
+        Возвращает список годов, за которые есть проведённые тренинги.
+        """
+
+        query = """
+            SELECT DISTINCT strftime('%Y', t.date) AS year
+            FROM trainings t
+            WHERE t.status = 'conducted'
+            ORDER BY year DESC
+        """
+
+        rows = await self.db.fetchall(query)
+
+        return [row["year"] for row in rows]
+
+    async def annual_by_lead(self, year: str) -> list:
+        """
+        Годовой срез по амбассадорам с должностями.
+        Сортировка по убыванию количества проведённых программ.
+        """
+
+        query = """
+            SELECT tl.user_id AS user_id,
+                   u.last_name AS last_name,
+                   u.first_name AS first_name,
+                   u.patronymic AS patronymic,
+                   u.position AS position,
+                   COUNT(*) AS cnt
+            FROM trainings t
+            JOIN training_leads tl ON tl.training_id = t.id
+            JOIN users u ON u.user_id = tl.user_id
+            WHERE t.status = 'conducted'
+              AND strftime('%Y', t.date) = ?
+            GROUP BY tl.user_id
+            ORDER BY cnt DESC, u.last_name
+        """
+
+        return await self.db.fetchall(query, (year,))

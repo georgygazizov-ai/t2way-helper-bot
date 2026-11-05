@@ -1,5 +1,7 @@
 from datetime import datetime, timedelta
 from zoneinfo import ZoneInfo
+import csv
+from pathlib import Path
 
 from repositories.report_repo import ReportRepo
 from services.training_service import format_lead_name
@@ -122,3 +124,64 @@ async def build_text_report(
     numbered = "\n".join(f"{i}. {line}" for i, line in enumerate(lines, 1))
 
     return header + "\n" + numbered
+
+def build_annual_csv(rows, year: str, out_dir: Path) -> Path:
+    """
+    Формирует годовой отчёт в CSV (Windows-формат):
+    - разделитель «;» (открывается в Excel без мастеров импорта);
+    - кодировка UTF-8 с BOM (кириллица читается корректно);
+    - переводы строк CRLF.
+
+    Столбцы: №, Амбассадор, Должность, Кол-во проведенных программ за N.
+    """
+
+    out_dir.mkdir(parents=True, exist_ok=True)
+    path = out_dir / f"annual_report_{year}.csv"
+
+    with open(path, "w", newline="", encoding="utf-8-sig") as fh:
+        writer = csv.writer(fh, delimiter=";", lineterminator="\r\n")
+
+        writer.writerow(
+            ["№", "Амбассадор", "Должность", f"Кол-во проведенных программ за {year}"]
+        )
+
+        for index, row in enumerate(rows, 1):
+            writer.writerow(
+                [
+                    index,
+                    format_lead_name(row),
+                    row["position"] or "",
+                    row["cnt"],
+                ]
+            )
+
+    return path
+
+def format_month_label(month: str) -> str:
+    """
+    Превращает метку месяца из БД в формат ММ.ГГ.
+    Пример: 2026-01 -> 01.26
+    """
+
+    try:
+        year, mon = month.split("-")
+        return f"{mon}.{year[2:]}"
+    except ValueError:
+        return month
+
+
+def format_short_name(row) -> str:
+    """
+    Короткое имя для графиков: Фамилия И.О.
+    Пример: Иванов И.И.
+    """
+
+    last_name = row["last_name"] or ""
+
+    initials = ""
+    if row["first_name"]:
+        initials += f"{row['first_name'][0]}."
+    if row["patronymic"]:
+        initials += f"{row['patronymic'][0]}."
+
+    return f"{last_name} {initials}".strip()
