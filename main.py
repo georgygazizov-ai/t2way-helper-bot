@@ -30,6 +30,7 @@ from jobs.training_jobs import auto_conduct_trainings, register_training_jobs
 from utils.time_utils import now_utc_str
 from jobs.birthday_jobs import register_birthday_jobs, send_birthdays
 from repositories.daily_log_repo import DailyLogRepo
+from jobs.backup_jobs import backup_if_missing, register_backup_jobs
 
 
 logger = logging.getLogger(__name__)
@@ -129,7 +130,12 @@ async def main() -> None:
         # Если бот был выключен в 09:00, поздравляем при старте.
         # Вызывается строго после создания объекта bot.
         await send_birthdays(bot, user_repo, daily_log_repo, settings)
-        
+
+        register_backup_jobs(scheduler, db=db, settings=settings)
+
+        # Если бот был выключен в 00:00, создаём бэкап за сегодня при старте.
+        await backup_if_missing(db, settings)
+
         register_my_trainings_handlers(dp, training_repo, city_repo, macro_repo, settings.timezone)
 
         logger.info("[SYSTEM] Обработчики зарегистрированы")
