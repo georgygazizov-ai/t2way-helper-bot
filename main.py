@@ -23,6 +23,8 @@ from repositories.training_repo import TrainingRepo
 from services.bootstrap_service import ensure_root_users
 from services.membership_service import MembershipService
 from utils.logger import setup_logging
+from jobs.scheduler import create_scheduler
+from repositories.reminder_repo import ReminderRepo
 
 
 logger = logging.getLogger(__name__)
@@ -53,6 +55,12 @@ async def main() -> None:
         macro_repo = MacroRegionRepo(db)
         city_repo = CityRepo(db)
         training_repo = TrainingRepo(db)
+        reminder_repo = ReminderRepo(db)
+
+        # Планировщик фоновых задач: напоминания, авто-статусы, бэкапы.
+        scheduler = create_scheduler(settings.timezone)
+        scheduler.start()
+        logger.info("[SYSTEM] Планировщик запущен")
 
         await ensure_root_users(user_repo, settings)
 
@@ -97,6 +105,11 @@ async def main() -> None:
                     await bot._session.close()
             except Exception:
                 pass
+
+        # Останавливаем планировщик до закрытия БД.
+        if "scheduler" in locals():
+            scheduler.shutdown(wait=False)
+            logger.info("[SYSTEM] Планировщик остановлен")
 
         await db.close()
         logger.info("[SYSTEM] T2Way Helper Bot остановлен")
