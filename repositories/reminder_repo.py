@@ -94,3 +94,33 @@ class ReminderRepo:
             )
 
         return count
+
+    async def mark_overdue_as_sent(self, now_utc: str) -> int:
+        """
+        Помечает просроченные напоминания отправленными без реальной отправки.
+
+        Используется при старте бота: напоминания, пропущенные
+        во время простоя, не отправляются задним числом.
+        """
+
+        count_query = """
+            SELECT COUNT(*) AS cnt
+            FROM reminders
+            WHERE is_sent = 0
+              AND scheduled_for < ?
+        """
+
+        row = await self.db.fetchone(count_query, (now_utc,))
+        count = int(row["cnt"]) if row else 0
+
+        if count:
+            query = """
+                UPDATE reminders
+                SET is_sent = 1
+                WHERE is_sent = 0
+                  AND scheduled_for < ?
+            """
+
+            await self.db.execute(query, (now_utc,))
+
+        return count

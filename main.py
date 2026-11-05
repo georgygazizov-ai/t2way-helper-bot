@@ -25,6 +25,8 @@ from services.membership_service import MembershipService
 from utils.logger import setup_logging
 from jobs.scheduler import create_scheduler
 from repositories.reminder_repo import ReminderRepo
+from jobs.training_jobs import register_training_jobs
+from utils.time_utils import now_utc_str
 
 
 logger = logging.getLogger(__name__)
@@ -62,6 +64,14 @@ async def main() -> None:
         scheduler.start()
         logger.info("[SYSTEM] Планировщик запущен")
 
+        # Напоминания, пропущенные во время простоя бота, не отправляются.
+        missed = await reminder_repo.mark_overdue_as_sent(now_utc_str())
+        if missed:
+            logger.info(
+                "[SYSTEM] Пропущенных напоминаний помечено отправленными: %s",
+                missed,
+            )
+
         await ensure_root_users(user_repo, settings)
 
         bot = Bot(token=settings.bot_token)
@@ -90,6 +100,14 @@ async def main() -> None:
             macro_repo,
             reminder_repo,
             settings.timezone,
+        )
+        register_training_jobs(
+            scheduler,
+            bot=bot,
+            reminder_repo=reminder_repo,
+            user_repo=user_repo,
+            training_repo=training_repo,
+            city_repo=city_repo,
         )
 
         logger.info("[SYSTEM] Обработчики зарегистрированы")
