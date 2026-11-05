@@ -212,6 +212,18 @@ CREATE TABLE IF NOT EXISTS reminders (
 );
 
 -- =========================
+-- 7. Журнал ежедневных событий (защита от повторных отправок за один день)
+-- =========================
+
+CREATE TABLE IF NOT EXISTS daily_events_log (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    event_type TEXT NOT NULL,
+    event_date TEXT NOT NULL,
+    sent_at TEXT NOT NULL,
+    UNIQUE (event_type, event_date)
+);
+
+-- =========================
 -- Индексы
 -- =========================
 

@@ -28,6 +28,8 @@ from jobs.scheduler import create_scheduler
 from repositories.reminder_repo import ReminderRepo
 from jobs.training_jobs import auto_conduct_trainings, register_training_jobs
 from utils.time_utils import now_utc_str
+from jobs.birthday_jobs import register_birthday_jobs, send_birthdays
+from repositories.daily_log_repo import DailyLogRepo
 
 
 logger = logging.getLogger(__name__)
@@ -59,6 +61,7 @@ async def main() -> None:
         city_repo = CityRepo(db)
         training_repo = TrainingRepo(db)
         reminder_repo = ReminderRepo(db)
+        daily_log_repo = DailyLogRepo(db)
 
         # Планировщик фоновых задач: напоминания, авто-статусы, бэкапы.
         scheduler = create_scheduler(settings.timezone)
@@ -115,6 +118,18 @@ async def main() -> None:
             city_repo=city_repo,
             timezone_name=settings.timezone,
         )
+        register_birthday_jobs(
+            scheduler,
+            bot=bot,
+            user_repo=user_repo,
+            daily_log_repo=daily_log_repo,
+            settings=settings,
+        )
+
+        # Если бот был выключен в 09:00, поздравляем при старте.
+        # Вызывается строго после создания объекта bot.
+        await send_birthdays(bot, user_repo, daily_log_repo, settings)
+        
         register_my_trainings_handlers(dp, training_repo, city_repo, macro_repo, settings.timezone)
 
         logger.info("[SYSTEM] Обработчики зарегистрированы")

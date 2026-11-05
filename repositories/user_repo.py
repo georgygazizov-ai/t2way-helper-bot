@@ -304,3 +304,23 @@ class UserRepo:
 
         rows = await self.db.fetchall(query)
         return [self._row_to_model(row) for row in rows]
+
+    async def get_birthday_users(self, day: int, month: int) -> list[User]:
+        """
+        Возвращает активных пользователей, у которых сегодня день рождения.
+        Root не поздравляем публично: он скрыт от остальных.
+        """
+
+        query = """
+            SELECT *
+            FROM users
+            WHERE status = 'active'
+              AND role != 'root'
+              AND birth_day = ?
+              AND birth_month = ?
+            ORDER BY last_name, first_name
+        """
+
+        rows = await self.db.fetchall(query, (day, month))
+
+        return [self._row_to_model(row) for row in rows]
