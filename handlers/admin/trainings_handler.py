@@ -20,6 +20,12 @@ from keyboards.admin.trainings_kb import get_training_cancel_kb, get_cancel_reas
 from services.profile_service import get_full_name
 from services.training_service import notify_training_cancellation
 from states.admin_states import AdminTrainingCancelStates
+from repositories.reminder_repo import ReminderRepo
+from services.reminder_service import (
+    notify_leads_assignment,
+    notify_leads_training_changed,
+    schedule_training_reminders,
+)
 
 
 logger = logging.getLogger(__name__)
@@ -32,6 +38,8 @@ def register_trainings_handlers(
     user_repo: UserRepo,
     city_repo: CityRepo,
     macro_repo: MacroRegionRepo,
+    reminder_repo: ReminderRepo,
+    timezone_name: str,
 ) -> None:
     """
     Управление тренингами: создание, редактирование, просмотр.
@@ -269,14 +277,34 @@ def register_trainings_handlers(
         for lead_id in selected:
             await training_repo.assign_lead(training_id, lead_id)
 
+        training = await training_repo.get_by_id(training_id)
+        leads = await training_repo.get_leads(training_id)
+
+        # Уведомляем ведущих о назначении
+        await notify_leads_assignment(bot, user_repo, city_repo, training, leads)
+
+        # Создаём отложенные напоминания
+        reminders_count = await schedule_training_reminders(
+            reminder_repo,
+            training_id,
+            training["date"],
+            [lead["user_id"] for lead in leads],
+            timezone_name,
+        )
+
         await context.clear()
 
-        logger.info("[AUDIT] Создан тренинг %s", training_id)
+        logger.info(
+            "[AUDIT] Создан тренинг %s, напоминаний создано: %s",
+            training_id,
+            reminders_count,
+        )
 
         await send_menu(
             event,
             context,
-            f"Тренинг ID {training_id} успешно создан.",
+            f"Тренинг ID {training_id} успешно создан.\n"
+            "Ведущие уведомлены, напоминания запланированы.",
             trainings_kb.get_trainings_menu_kb(),
         )
 
@@ -446,14 +474,41 @@ def register_trainings_handlers(
             return
 
         await training_repo.update_training(training_id, date=date_str)
+
+        # Пересоздаём напоминания под новую дату
+        await reminder_repo.delete_unsent_for_training(training_id)
+
+        leads = await training_repo.get_leads(training_id)
+        reminders_count = await schedule_training_reminders(
+            reminder_repo,
+            training_id,
+            date_str,
+            [lead["user_id"] for lead in leads],
+            timezone_name,
+        )
+
+        await notify_leads_training_changed(
+            bot,
+            user_repo,
+            city_repo,
+            training_repo,
+            training_id,
+            "дата",
+        )
+
         await context.clear()
 
-        logger.info("[AUDIT] Изменена дата тренинга %s", training_id)
+        logger.info(
+            "[AUDIT] Изменена дата тренинга %s, напоминаний пересоздано: %s",
+            training_id,
+            reminders_count,
+        )
 
         await send_menu(
             event,
             context,
-            "Дата тренинга обновлена.",
+            "Дата тренинга обновлена.\n"
+            "Напоминания пересозданы, ведущие уведомлены.",
             trainings_kb.get_trainings_menu_kb(),
         )
 
@@ -490,6 +545,16 @@ def register_trainings_handlers(
             return
 
         await training_repo.update_training(training_id, format_type=format_type)
+
+        await notify_leads_training_changed(
+            bot,
+            user_repo,
+            city_repo,
+            training_repo,
+            training_id,
+            "формат",
+        )
+
         await context.clear()
 
         logger.info("[AUDIT] Изменён формат тренинга %s", training_id)
@@ -497,7 +562,7 @@ def register_trainings_handlers(
         await send_menu(
             event,
             context,
-            "Формат тренинга обновлён.",
+            "Формат тренинга обновлён. Ведущие уведомлены.",
             trainings_kb.get_trainings_menu_kb(),
         )
 
@@ -581,6 +646,16 @@ def register_trainings_handlers(
             return
 
         await training_repo.update_training(training_id, city_id=city_id)
+
+        await notify_leads_training_changed(
+            bot,
+            user_repo,
+            city_repo,
+            training_repo,
+            training_id,
+            "город",
+        )
+
         await context.clear()
 
         logger.info("[AUDIT] Изменён город тренинга %s", training_id)
@@ -588,7 +663,7 @@ def register_trainings_handlers(
         await send_menu(
             event,
             context,
-            "Город тренинга обновлён.",
+            "Город тренинга обновлён. Ведущие уведомлены.",
             trainings_kb.get_trainings_menu_kb(),
         )
 
@@ -667,6 +742,7 @@ def register_trainings_handlers(
             return
 
         await training_repo.cancel_training(training_id, current_user.user_id, reason)
+        await reminder_repo.delete_unsent_for_training(training_id)
 
         await notify_training_cancellation(
             bot,
@@ -708,6 +784,7 @@ def register_trainings_handlers(
             return
 
         await training_repo.cancel_training(training_id, current_user.user_id, None)
+        await reminder_repo.delete_unsent_for_training(training_id)
 
         await notify_training_cancellation(
             bot,

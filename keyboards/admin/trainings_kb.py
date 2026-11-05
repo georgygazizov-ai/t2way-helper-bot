@@ -123,7 +123,6 @@ def get_training_edit_kb(training_id: int):
     builder.row(CallbackButton(text="Изменить дату", payload=f"train:edit_date:{training_id}"))
     builder.row(CallbackButton(text="Изменить формат", payload=f"train:edit_format:{training_id}"))
     builder.row(CallbackButton(text="Изменить город", payload=f"train:edit_city:{training_id}"))
-    builder.row(CallbackButton(text="Изменить ведущих", payload=f"train:edit_leads:{training_id}"))
     builder.row(CallbackButton(text="« Назад", payload=f"train:view:{training_id}"))
 
     return builder.as_markup()

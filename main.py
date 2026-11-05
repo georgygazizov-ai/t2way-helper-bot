@@ -81,7 +81,16 @@ async def main() -> None:
         register_profile_admin_form_handlers(dp, bot, user_repo, city_repo, macro_repo)
         register_user_profile_handlers(dp, user_repo, city_repo, macro_repo)
         register_roles_handlers(dp, bot, user_repo)
-        register_trainings_handlers(dp, bot, training_repo, user_repo, city_repo, macro_repo)
+        register_trainings_handlers(
+            dp,
+            bot,
+            training_repo,
+            user_repo,
+            city_repo,
+            macro_repo,
+            reminder_repo,
+            settings.timezone,
+        )
 
         logger.info("[SYSTEM] Обработчики зарегистрированы")
         logger.info("[SYSTEM] Запуск polling")
