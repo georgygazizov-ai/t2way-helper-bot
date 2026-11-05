@@ -23,6 +23,7 @@ from states.admin_states import AdminTrainingCancelStates
 from repositories.reminder_repo import ReminderRepo
 from services.reminder_service import (
     notify_leads_assignment,
+    notify_leads_removed,
     notify_leads_training_changed,
     schedule_training_reminders,
 )
@@ -209,7 +210,7 @@ def register_trainings_handlers(
         await send_menu(
             event,
             context,
-            "Выберите ведущих тренинга (от 1 до 3 человек):",
+            "Выберите ведущих тренинга (до 3, можно оставить пустым):",
             trainings_kb.get_leads_choice_kb(trainers, []),
         )
 
@@ -245,7 +246,7 @@ def register_trainings_handlers(
         await send_menu(
             event,
             context,
-            "Выберите ведущих тренинга (от 1 до 3 человек):",
+            "Выберите ведущих тренинга (до 3, можно оставить пустым):",
             trainings_kb.get_leads_choice_kb(trainers, selected),
         )
 
@@ -254,16 +255,7 @@ def register_trainings_handlers(
         await delete_callback_message(event)
 
         data = await context.get_data()
-        selected = data.get("selected_leads", [])
-
-        if len(selected) < 1:
-            await send_menu(
-                event,
-                context,
-                "Нужно выбрать хотя бы одного ведущего.",
-                trainings_kb.get_cancel_kb(),
-            )
-            return
+        selected = data.get("selected_leads") or []
 
         # Создаём тренинг
         training_id = await training_repo.create(
@@ -273,24 +265,29 @@ def register_trainings_handlers(
             created_by=current_user.user_id,
         )
 
-        # Назначаем ведущих
+        # Назначаем ведущих (список может быть пустым)
         for lead_id in selected:
             await training_repo.assign_lead(training_id, lead_id)
 
         training = await training_repo.get_by_id(training_id)
         leads = await training_repo.get_leads(training_id)
 
-        # Уведомляем ведущих о назначении
-        await notify_leads_assignment(bot, user_repo, city_repo, training, leads)
+        if selected:
+            # Уведомляем ведущих о назначении
+            await notify_leads_assignment(bot, user_repo, city_repo, training, leads)
 
-        # Создаём отложенные напоминания
-        reminders_count = await schedule_training_reminders(
-            reminder_repo,
-            training_id,
-            training["date"],
-            [lead["user_id"] for lead in leads],
-            timezone_name,
-        )
+            # Создаём отложенные напоминания
+            reminders_count = await schedule_training_reminders(
+                reminder_repo,
+                training_id,
+                training["date"],
+                [lead["user_id"] for lead in leads],
+                timezone_name,
+            )
+            note = "Ведущие уведомлены, напоминания запланированы."
+        else:
+            reminders_count = 0
+            note = "Тренинг создан без ведущих. Добавить их можно через редактирование."
 
         await context.clear()
 
@@ -303,8 +300,7 @@ def register_trainings_handlers(
         await send_menu(
             event,
             context,
-            f"Тренинг ID {training_id} успешно создан.\n"
-            "Ведущие уведомлены, напоминания запланированы.",
+            f"Тренинг ID {training_id} успешно создан.\n{note}",
             trainings_kb.get_trainings_menu_kb(),
         )
 
@@ -804,4 +800,174 @@ def register_trainings_handlers(
             context,
             f"Тренинг ID {training_id} отменён.",
             trainings_kb.get_trainings_menu_kb(),
+        )
+
+    # === РЕДАКТИРОВАНИЕ ВЕДУЩИХ ===
+
+    @dp.message_callback(F.callback.payload.startswith("train:edit_leads:"))
+    async def cb_edit_leads_start(event: MessageCallback, context: MemoryContext):
+        """Открывает выбор ведущих с предвыбором текущего состава."""
+
+        training_id = int(event.callback.payload.split(":")[-1])
+        await delete_callback_message(event)
+
+        training = await training_repo.get_by_id(training_id)
+
+        if training is None or training["status"] != "assigned":
+            await send_menu(
+                event,
+                context,
+                "Можно менять ведущих только у назначенного тренинга.",
+                trainings_kb.get_trainings_menu_kb(),
+            )
+            return
+
+        leads = await training_repo.get_leads(training_id)
+        selected = [lead["user_id"] for lead in leads]
+
+        trainers = await user_repo.get_all_trainers()
+
+        await context.update_data(
+            edit_training_id=training_id,
+            selected_leads=selected,
+        )
+        await context.set_state(AdminTrainingEditStates.waiting_leads)
+
+        await send_menu(
+            event,
+            context,
+            "Измените состав ведущих (до 3, можно оставить пустым) и подтвердите выбор:",
+            trainings_kb.get_leads_choice_kb(
+                trainers,
+                selected,
+                cancel_payload=f"train:edit:{training_id}",
+            ),
+        )
+
+    @dp.message_callback(
+        AdminTrainingEditStates.waiting_leads,
+        F.callback.payload.startswith("train:lead_toggle:"),
+    )
+    async def fsm_edit_lead_toggle(event: MessageCallback, context: MemoryContext):
+        """Переключает отметку ведущего в режиме редактирования."""
+
+        lead_id = int(event.callback.payload.split(":")[-1])
+        await delete_callback_message(event)
+
+        data = await context.get_data()
+        selected = list(data.get("selected_leads", []))
+        training_id = data.get("edit_training_id")
+
+        if lead_id in selected:
+            selected.remove(lead_id)
+        else:
+            if len(selected) >= 3:
+                await send_menu(
+                    event,
+                    context,
+                    "Максимум 3 ведущих. Сначала уберите одного.",
+                    trainings_kb.get_leads_choice_kb(
+                        await user_repo.get_all_trainers(),
+                        selected,
+                        cancel_payload=f"train:edit:{training_id}",
+                    ),
+                )
+                return
+
+            selected.append(lead_id)
+
+        await context.update_data(selected_leads=selected)
+
+        await send_menu(
+            event,
+            context,
+            "Измените состав ведущих (до 3, можно оставить пустым) и подтвердите выбор:",
+            trainings_kb.get_leads_choice_kb(
+                await user_repo.get_all_trainers(),
+                selected,
+                cancel_payload=f"train:edit:{training_id}",
+            ),
+        )
+
+    @dp.message_callback(
+        AdminTrainingEditStates.waiting_leads,
+        F.callback.payload == "train:leads_confirm",
+    )
+    async def fsm_edit_leads_confirm(event: MessageCallback, context: MemoryContext):
+        """Сохраняет новый состав ведущих и рассылает уведомления."""
+
+        await delete_callback_message(event)
+
+        data = await context.get_data()
+        training_id = data.get("edit_training_id")
+        selected = data.get("selected_leads", [])
+
+        if training_id is None or selected is None:
+            await context.clear()
+            await send_menu(
+                event,
+                context,
+                "Ошибка контекста.",
+                trainings_kb.get_trainings_menu_kb(),
+            )
+            return
+
+        old_leads = await training_repo.get_leads(training_id)
+        old_ids = {lead["user_id"] for lead in old_leads}
+        new_ids = set(selected)
+
+        removed_ids = old_ids - new_ids
+        added_ids = new_ids - old_ids
+
+        # Заменяем состав ведущих
+        await training_repo.remove_all_leads(training_id)
+        for user_id in selected:
+            await training_repo.assign_lead(training_id, user_id)
+
+        training = await training_repo.get_by_id(training_id)
+        leads = await training_repo.get_leads(training_id)
+
+        # Пересоздаём напоминания под новый состав
+        await reminder_repo.delete_unsent_for_training(training_id)
+        await schedule_training_reminders(
+            reminder_repo,
+            training_id,
+            training["date"],
+            selected,
+            timezone_name,
+        )
+
+        # Уведомления
+        if added_ids:
+            added_leads = [lead for lead in leads if lead["user_id"] in added_ids]
+            await notify_leads_assignment(bot, user_repo, city_repo, training, added_leads)
+
+        if removed_ids:
+            await notify_leads_removed(bot, user_repo, training, removed_ids)
+
+        if old_ids & new_ids:
+            await notify_leads_training_changed(
+                bot,
+                user_repo,
+                city_repo,
+                training_repo,
+                training_id,
+                "состав ведущих",
+            )
+
+        await context.clear()
+
+        logger.info(
+            "[AUDIT] Тренинг %s: состав ведущих обновлён (+%s / -%s)",
+            training_id,
+            len(added_ids),
+            len(removed_ids),
+        )
+
+        await send_menu(
+            event,
+            context,
+            "Состав ведущих обновлён.\n"
+            "Напоминания пересозданы, уведомления отправлены.",
+            trainings_kb.get_training_edit_kb(training_id),
         )

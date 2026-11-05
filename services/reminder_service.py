@@ -173,3 +173,39 @@ async def notify_leads_training_changed(
                 lead["user_id"],
                 exc,
             )
+
+async def notify_leads_removed(
+    bot,
+    user_repo: UserRepo,
+    training,
+    removed_user_ids,
+) -> None:
+    """
+    Уведомляет ведущих, которых сняли с тренинга.
+    """
+
+    for user_id in removed_user_ids:
+        user = await user_repo.get_by_id(user_id)
+
+        if user is None or user.chat_id is None:
+            logger.warning(
+                "[ERROR] У пользователя %s нет диалога с ботом — уведомление о снятии не отправлено",
+                user_id,
+            )
+            continue
+
+        try:
+            await bot.send_message(
+                chat_id=user.chat_id,
+                text=(
+                    "Вы сняты с роли ведущего тренинга.\n\n"
+                    f"Дата: {format_training_date(training['date'])}\n"
+                    f"Формат: {training['format']}"
+                ),
+            )
+        except Exception as exc:
+            logger.warning(
+                "[ERROR] Не удалось уведомить пользователя %s о снятии с тренинга: %r",
+                user_id,
+                exc,
+            )

@@ -45,6 +45,7 @@ class AdminTrainingEditStates(StatesGroup):
     waiting_date = State()
     waiting_city_macro = State()
     waiting_city = State()
+    waiting_leads = State()
 
 
 class AdminTrainingCancelStates(StatesGroup):
