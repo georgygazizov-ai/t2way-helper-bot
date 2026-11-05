@@ -158,3 +158,51 @@ class TrainingRepo:
             "[AUDIT] Тренинг %s автоматически переведён в статус 'conducted'",
             training_id,
         )
+
+    async def get_upcoming_for_user(self, user_id: int, today_str: str) -> list:
+        """
+        Предстоящие назначенные тренинги пользователя.
+        """
+
+        query = """
+            SELECT t.*
+            FROM trainings t
+            JOIN training_leads tl ON tl.training_id = t.id
+            WHERE tl.user_id = ?
+              AND t.status = 'assigned'
+              AND t.date >= ?
+            ORDER BY t.date
+        """
+
+        return await self.db.fetchall(query, (user_id, today_str))
+
+    async def get_conducted_for_user(self, user_id: int) -> list:
+        """
+        Проведённые тренинги пользователя.
+        """
+
+        query = """
+            SELECT t.*
+            FROM trainings t
+            JOIN training_leads tl ON tl.training_id = t.id
+            WHERE tl.user_id = ?
+              AND t.status = 'conducted'
+            ORDER BY t.date DESC
+        """
+
+        return await self.db.fetchall(query, (user_id,))
+
+    async def get_upcoming_all(self, today_str: str) -> list:
+        """
+        Все предстоящие назначенные тренинги (календарь команды).
+        """
+
+        query = """
+            SELECT *
+            FROM trainings
+            WHERE status = 'assigned'
+              AND date >= ?
+            ORDER BY date
+        """
+
+        return await self.db.fetchall(query, (today_str,))

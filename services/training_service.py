@@ -117,3 +117,37 @@ async def notify_training_cancellation(
                     admin.user_id,
                     exc,
                 )
+
+STATUS_TITLES = {
+    "assigned": "назначен",
+    "conducted": "проведён",
+    "cancelled": "отменён",
+}
+
+
+def status_title(status: str) -> str:
+    """
+    Человекочитаемый статус тренинга.
+    """
+
+    return STATUS_TITLES.get(status, status)
+
+
+def format_training_card(
+    training,
+    city_name: str,
+    macro_name: str,
+    leads_names: str,
+) -> str:
+    """
+    Карточка тренинга для просмотра.
+    """
+
+    return (
+        f"Тренинг {format_training_date(training['date'])}\n\n"
+        f"Формат: {training['format']}\n"
+        f"Макрорегион: {macro_name}\n"
+        f"Город: {city_name}\n"
+        f"Ведущие: {leads_names}\n"
+        f"Статус: {status_title(training['status'])}"
+    )

@@ -14,6 +14,7 @@ from handlers.admin.profile_admin_handler import register_profile_admin_handlers
 from handlers.admin.profile_admin_form_handler import register_profile_admin_form_handlers
 from handlers.admin.roles_handler import register_roles_handlers
 from handlers.admin.trainings_handler import register_trainings_handlers
+from handlers.user.my_trainings_handler import register_my_trainings_handlers
 from middlewares.auth_middleware import AuthMiddleware
 from middlewares.role_middleware import RoleMiddleware
 from repositories.user_repo import UserRepo
@@ -114,6 +115,7 @@ async def main() -> None:
             city_repo=city_repo,
             timezone_name=settings.timezone,
         )
+        register_my_trainings_handlers(dp, training_repo, city_repo, macro_repo, settings.timezone)
 
         logger.info("[SYSTEM] Обработчики зарегистрированы")
         logger.info("[SYSTEM] Запуск polling")

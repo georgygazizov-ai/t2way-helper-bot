@@ -13,6 +13,7 @@ def register_system_handlers(dp: Dispatcher) -> None:
             "Доступные команды:\n\n"
             "/start — регистрация в боте\n"
             "/profile — мой профиль\n"
+            "/my_trainings — мои тренинги и календарь команды\n"
             "/help — справка\n"
             "/ping — проверка связи с ботом"
         )

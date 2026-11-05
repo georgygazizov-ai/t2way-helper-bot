@@ -44,3 +44,13 @@ class MacroRegionRepo:
         """
         await self.db.execute(query, (region_id,))
         logger.info("[DB] Макрорегион %s деактивирован", region_id)
+
+    async def get_by_id(self, region_id: int):
+        """
+        Возвращает макрорегион по ID в виде модели.
+        """
+
+        query = "SELECT * FROM macro_regions WHERE id = ?"
+        row = await self.db.fetchone(query, (region_id,))
+
+        return self._row_to_model(row)
