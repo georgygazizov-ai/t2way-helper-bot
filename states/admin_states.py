@@ -51,3 +51,13 @@ class AdminTrainingEditStates(StatesGroup):
 class AdminTrainingCancelStates(StatesGroup):
     """Состояния отмены тренинга."""
     waiting_reason = State()
+
+
+class AdminBroadcastStates(StatesGroup):
+    """Состояния создания массовой рассылки."""
+    waiting_segment = State()
+    waiting_macro_region = State()
+    waiting_city = State()
+    waiting_text = State()
+    waiting_media = State()
+    waiting_confirm = State()

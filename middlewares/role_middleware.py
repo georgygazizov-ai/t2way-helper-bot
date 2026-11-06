@@ -50,7 +50,7 @@ class RoleMiddleware(BaseMiddleware):
                 await answer_event(event_object, "Недостаточно прав.")
                 return
 
-        if payload.startswith(("spr:", "prof:", "roles:", "train:")):
+        if payload.startswith(("spr:", "prof:", "roles:", "train:", "brd:")):
             if not is_admin(user):
                 logger.warning(
                     "[SECURITY] Отказ доступа к админ-кнопке %s для пользователя %s",

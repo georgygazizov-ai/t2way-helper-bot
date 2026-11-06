@@ -324,3 +324,62 @@ class UserRepo:
         rows = await self.db.fetchall(query, (day, month))
 
         return [self._row_to_model(row) for row in rows]
+
+    async def get_all_for_broadcast(self) -> list[User]:
+        """Все активные пользователи с заполненным chat_id."""
+        query = """
+            SELECT * FROM users
+            WHERE status = 'active' AND chat_id IS NOT NULL
+            ORDER BY user_id
+        """
+        rows = await self.db.fetchall(query)
+        return [self._row_to_model(row) for row in rows]
+
+    async def get_trainers_for_broadcast(self) -> list[User]:
+        """Тренеры и администраторы, готовые к рассылке."""
+        query = """
+            SELECT * FROM users
+            WHERE role IN ('trainer', 'admin')
+              AND status = 'active'
+              AND chat_id IS NOT NULL
+            ORDER BY user_id
+        """
+        rows = await self.db.fetchall(query)
+        return [self._row_to_model(row) for row in rows]
+
+    async def get_admins_for_broadcast(self) -> list[User]:
+        """Администраторы и root, готовые к рассылке."""
+        query = """
+            SELECT * FROM users
+            WHERE role IN ('admin', 'root')
+              AND status = 'active'
+              AND chat_id IS NOT NULL
+            ORDER BY user_id
+        """
+        rows = await self.db.fetchall(query)
+        return [self._row_to_model(row) for row in rows]
+
+    async def get_by_city_for_broadcast(self, city_id: int) -> list[User]:
+        """Пользователи конкретного города, готовые к рассылке."""
+        query = """
+            SELECT * FROM users
+            WHERE city_id = ?
+              AND status = 'active'
+              AND chat_id IS NOT NULL
+            ORDER BY user_id
+        """
+        rows = await self.db.fetchall(query, (city_id,))
+        return [self._row_to_model(row) for row in rows]
+
+    async def get_by_macro_region_for_broadcast(self, macro_region_id: int) -> list[User]:
+        """Пользователи макрорегиона, готовые к рассылке."""
+        query = """
+            SELECT u.* FROM users u
+            JOIN cities c ON u.city_id = c.id
+            WHERE c.macro_region_id = ?
+              AND u.status = 'active'
+              AND u.chat_id IS NOT NULL
+            ORDER BY u.user_id
+        """
+        rows = await self.db.fetchall(query, (macro_region_id,))
+        return [self._row_to_model(row) for row in rows]
