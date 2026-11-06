@@ -7,6 +7,7 @@ from maxapi.types import Command, MessageCallback, MessageCreated
 from keyboards import menu_kb
 from utils.permissions import is_admin, is_root
 from utils.ui_messages import delete_callback_message, send_menu
+from handlers.user.profile_handler import show_profile_card
 
 logger = logging.getLogger(__name__)
 
@@ -62,6 +63,12 @@ INSTRUCTION_ROOT = """
 def register_menu_handlers(
     dp: Dispatcher,
     settings,
+    user_repo,
+    city_repo,
+    macro_repo,
+    training_repo,
+    report_repo,
+    bot,
 ) -> None:
     """
     Главное меню бота.
@@ -120,17 +127,35 @@ def register_menu_handlers(
 
         await send_menu(event, context, text.strip(), None)
 
+    @dp.message_callback(F.callback.payload == "menu:profile")
+    async def cb_open_profile(event: MessageCallback, context: MemoryContext, current_user):
+        await delete_callback_message(event)
+        await context.clear()
+        await show_profile_card(
+            event, context, user_repo, city_repo, current_user.user_id,
+        )
+
+    @dp.message_callback(F.callback.payload == "menu:my_trainings")
+    async def cb_open_my_trainings(event: MessageCallback, context: MemoryContext, current_user):
+        await delete_callback_message(event)
+        await context.clear()
+        # TODO: вызвать функцию показа экрана «Мои тренинги»
+        await send_menu(event, context, "Экран «Мои тренинги» будет привязан на следующем шаге.", None)
+
+    @dp.message_callback(F.callback.payload == "menu:stats")
+    async def cb_open_stats(event: MessageCallback, context: MemoryContext, current_user):
+        await delete_callback_message(event)
+        await context.clear()
+        # TODO: вызвать функцию показа экрана «Статистика»
+        await send_menu(event, context, "Экран «Статистика» будет привязан на следующем шаге.", None)
+
     @dp.message_callback(F.callback.payload.startswith("menu:"))
-    async def cb_menu_item(event: MessageCallback, context: MemoryContext, current_user):
+    async def cb_menu_item_fallback(event: MessageCallback, context: MemoryContext, current_user):
         payload = event.callback.payload
         action = payload.split(":")[1]
         await delete_callback_message(event)
 
-        # Команды, которые нужно вызвать как будто пользователь их ввёл
         commands_map = {
-            "profile": "/profile",
-            "my_trainings": "/my_trainings",
-            "stats": "/stats",
             "admin_profiles": "/admin_profiles",
             "admin_trainings": "/admin_trainings",
             "admin_spravochnik": "/admin_spravochnik",
