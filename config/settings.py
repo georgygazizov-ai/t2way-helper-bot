@@ -33,6 +33,7 @@ class Settings:
     delete_previous_bot_messages: bool
     max_file_size_mb: int
     broadcast_delay_seconds: float
+    trainer_materials_url: str
 
 
 def _parse_int_list(raw_value: str) -> tuple[int, ...]:
@@ -132,6 +133,7 @@ def load_settings() -> Settings:
         ),
         max_file_size_mb=int(os.getenv("MAX_FILE_SIZE_MB", "15")),
         broadcast_delay_seconds=float(os.getenv("BROADCAST_DELAY_SECONDS", "0.5")),
+        trainer_materials_url=os.getenv("TRAINER_MATERIALS_URL", "").strip(),
     )
 
     return settings
