@@ -61,3 +61,8 @@ class AdminBroadcastStates(StatesGroup):
     waiting_text = State()
     waiting_media = State()
     waiting_confirm = State()
+
+
+class AdminRootStates(StatesGroup):
+    """Состояния для служебных команд root."""
+    waiting_chat_id = State()

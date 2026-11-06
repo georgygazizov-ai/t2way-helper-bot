@@ -206,3 +206,9 @@ class TrainingRepo:
         """
 
         return await self.db.fetchall(query, (today_str,))
+
+    async def count_all(self) -> int:
+        """Возвращает количество всех тренингов."""
+        query = "SELECT COUNT(*) FROM trainings"
+        row = await self.db.fetchone(query)
+        return row["COUNT(*)"] if row else 0

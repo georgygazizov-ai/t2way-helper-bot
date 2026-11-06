@@ -383,3 +383,9 @@ class UserRepo:
         """
         rows = await self.db.fetchall(query, (macro_region_id,))
         return [self._row_to_model(row) for row in rows]
+
+    async def count_active(self) -> int:
+        """Возвращает количество активных пользователей."""
+        query = "SELECT COUNT(*) FROM users WHERE status = 'active'"
+        row = await self.db.fetchone(query)
+        return row["COUNT(*)"] if row else 0

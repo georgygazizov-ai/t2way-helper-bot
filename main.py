@@ -32,6 +32,7 @@ from jobs.birthday_jobs import register_birthday_jobs, send_birthdays
 from repositories.daily_log_repo import DailyLogRepo
 from jobs.backup_jobs import backup_if_missing, register_backup_jobs
 from handlers.common.stats_handler import register_stats_handlers
+from handlers.root_handler import register_root_handlers
 from repositories.report_repo import ReportRepo
 from repositories.settings_repo import SettingsRepo
 from handlers.admin.broadcast_handler import register_broadcast_handlers
@@ -145,6 +146,7 @@ async def main() -> None:
 
         register_my_trainings_handlers(dp, training_repo, city_repo, macro_repo, settings.timezone)
         register_stats_handlers(dp, bot, report_repo, settings)
+        register_root_handlers(dp, bot, db, user_repo, training_repo, settings_repo, settings)
 
         logger.info("[SYSTEM] Обработчики зарегистрированы")
         logger.info("[SYSTEM] Запуск polling")
