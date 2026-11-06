@@ -1,6 +1,7 @@
 import logging
 
 from maxapi.context import MemoryContext
+from maxapi.types import InputMedia
 
 
 logger = logging.getLogger(__name__)
@@ -58,6 +59,40 @@ async def send_menu(
     # В maxapi реальный объект сообщения лежит в sent.message.
     message_obj = getattr(sent, "message", sent)
 
+    await context.update_data(last_bot_message_obj=message_obj)
+
+    return message_obj
+
+
+async def send_menu_with_media(
+    event,
+    context: MemoryContext,
+    text: str,
+    keyboard,
+    media_path,
+    bot,
+):
+    """
+    Отправляет ОДНО сообщение с текстом, inline-клавиатурой и файлом.
+
+    Если загрузка файла не удалась, отправляет текст с кнопками без файла.
+    Объект сообщения сохраняется в контексте для последующего удаления.
+    """
+
+    keyboard_items = []
+    if keyboard is not None:
+        keyboard_items = keyboard if isinstance(keyboard, list) else [keyboard]
+
+    try:
+        uploaded = await bot.upload_media(InputMedia(path=str(media_path)))
+        attachments = keyboard_items + [uploaded]
+    except Exception as error:
+        logger.warning("Не удалось загрузить файл %s: %s", media_path, error)
+        attachments = keyboard_items
+
+    sent = await event.message.answer(text, attachments=attachments)
+
+    message_obj = getattr(sent, "message", sent)
     await context.update_data(last_bot_message_obj=message_obj)
 
     return message_obj

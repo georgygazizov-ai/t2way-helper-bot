@@ -15,10 +15,13 @@ from services.report_service import (
 )
 from states.common_states import StatsStates
 from utils.charts import bar_chart, line_chart, pie_chart
-from utils.ui_messages import clear_last_bot_message, delete_callback_message, send_menu
+from utils.ui_messages import (
+    clear_last_bot_message,
+    delete_callback_message,
+    send_menu,
+    send_menu_with_media,
+)
 from utils.validators import parse_date_to_iso
-from maxapi.types import InputMedia
-from utils.event_helpers import get_event_chat_id
 
 
 logger = logging.getLogger(__name__)
@@ -37,52 +40,17 @@ def register_stats_handlers(
     Статистика по тренингам: доступна всем ролям.
     """
 
-    async def send_chart_photo(event, chart_path: Path) -> None:
-        """Загружает график и отправляет его как вложение."""
-
-        chat_id = await get_event_chat_id(event)
-
-        if chat_id is None:
-            logger.warning("[ERROR] Не удалось получить chat_id для отправки графика")
-            return
-
-        try:
-            media = InputMedia(path=str(chart_path))
-            uploaded = await bot.upload_media(media)
-
-            await bot.send_message(
-                chat_id=chat_id,
-                attachments=[uploaded],
-            )
-        except Exception as exc:
-            logger.warning("[ERROR] Не удалось отправить график: %r", exc)
-
     async def send_csv_report(event, context: MemoryContext, csv_path: Path, title: str) -> None:
-        """Отправляет текстовое сообщение и CSV-файл как вложение."""
+        """Отправляет CSV-файл вместе с текстом и кнопками одним сообщением."""
 
-        await send_menu(
+        await send_menu_with_media(
             event,
             context,
             title,
             stats_kb.get_back_to_stats_menu_kb(),
+            csv_path,
+            bot,
         )
-
-        chat_id = await get_event_chat_id(event)
-
-        if chat_id is None:
-            logger.warning("[ERROR] Не удалось получить chat_id для отправки CSV")
-            return
-
-        try:
-            media = InputMedia(path=str(csv_path))
-            uploaded = await bot.upload_media(media)
-
-            await bot.send_message(
-                chat_id=chat_id,
-                attachments=[uploaded],
-            )
-        except Exception as exc:
-            logger.warning("[ERROR] Не удалось отправить CSV: %r", exc)
 
     async def send_report(
         event,
@@ -134,14 +102,14 @@ def register_stats_handlers(
             )
             return
 
-        await send_menu(
+        await send_menu_with_media(
             event,
             context,
             text,
             stats_kb.get_back_to_stats_menu_kb(),
+            chart_path,
+            bot,
         )
-
-        await send_chart_photo(event, chart_path)
 
         await context.clear()
 
