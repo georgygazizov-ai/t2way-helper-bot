@@ -97,7 +97,7 @@ async def main() -> None:
         dp.register_outer_middleware(AuthMiddleware(user_repo))
         dp.register_outer_middleware(RoleMiddleware())
 
-        membership_service = MembershipService(settings)
+        membership_service = MembershipService(settings, settings_repo)
 
         # Регистрация хендлеров
         register_system_handlers(dp)
