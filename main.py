@@ -33,6 +33,7 @@ from repositories.daily_log_repo import DailyLogRepo
 from jobs.backup_jobs import backup_if_missing, register_backup_jobs
 from handlers.common.stats_handler import register_stats_handlers
 from repositories.report_repo import ReportRepo
+from repositories.settings_repo import SettingsRepo
 from handlers.admin.broadcast_handler import register_broadcast_handlers
 
 
@@ -67,6 +68,7 @@ async def main() -> None:
         reminder_repo = ReminderRepo(db)
         daily_log_repo = DailyLogRepo(db)
         report_repo = ReportRepo(db)
+        settings_repo = SettingsRepo(db)
 
         # Планировщик фоновых задач: напоминания, авто-статусы, бэкапы.
         scheduler = create_scheduler(settings.timezone)
