@@ -14,7 +14,9 @@ from repositories.macro_region_repo import MacroRegionRepo
 from repositories.user_repo import UserRepo
 from states.admin_states import AdminBroadcastStates
 from utils.ui_messages import clear_last_bot_message, delete_callback_message, send_menu
+from utils.event_helpers import get_event_chat_id
 from config.settings import Settings
+from services.broadcast_service import send_broadcast_task
 
 logger = logging.getLogger(__name__)
 
@@ -216,11 +218,24 @@ def register_broadcast_handlers(
     @dp.message_callback(AdminBroadcastStates.waiting_confirm, F.callback.payload == "brd:confirm_send")
     async def cb_confirm_broadcast(event: MessageCallback, context: MemoryContext, current_user):
         await delete_callback_message(event)
-        # Сохраняем данные до очистки контекста
         data = await context.get_data()
         await context.clear()
         
-        # На следующем шаге здесь будет запуск реальной задачи рассылки
+        # Получаем ID диалога администратора для отправки отчёта
+        admin_chat_id = await get_event_chat_id(event)
+        
+        # Запускаем фоновую задачу
+        asyncio.create_task(
+            send_broadcast_task(
+                bot=bot,
+                admin_chat_id=admin_chat_id,
+                chat_ids=data.get("broadcast_chat_ids", []),
+                text=data.get("broadcast_text", ""),
+                media_path=data.get("broadcast_media_path"),
+                settings=settings,
+            )
+        )
+        
         await send_menu(
             event, context,
             "✅ Рассылка запущена в фоне!\n\n"
