@@ -3,13 +3,30 @@ import logging
 from maxapi import Dispatcher
 from maxapi.types import Command, MessageCreated
 
+from keyboards import menu_kb
 from repositories.user_repo import UserRepo
 from services.membership_service import MembershipService
 from utils.event_helpers import get_event_chat_id
-from utils.permissions import ROLE_ROOT, ROLE_TRAINER
-
+from utils.permissions import ROLE_ROOT, ROLE_TRAINER, is_admin, is_root
+from utils.ui_messages import send_menu
 
 logger = logging.getLogger(__name__)
+
+
+async def _send_user_menu(event, current_user, context):
+    """Показывает главное меню в зависимости от роли пользователя."""
+    if is_root(current_user):
+        kb = menu_kb.get_root_menu_kb()
+    elif is_admin(current_user):
+        kb = menu_kb.get_admin_menu_kb()
+    else:
+        kb = menu_kb.get_user_menu_kb()
+
+    await send_menu(
+        event, context,
+        "🏠 Главное меню:",
+        kb,
+    )
 
 
 def register_start_handler(
@@ -23,7 +40,7 @@ def register_start_handler(
     """
 
     @dp.message_created(Command("start"))
-    async def start_handler(event: MessageCreated) -> None:
+    async def start_handler(event: MessageCreated, context) -> None:
         from_user = await event.fetch_from_user()
 
         if from_user is None:
@@ -35,11 +52,13 @@ def register_start_handler(
 
         user = await user_repo.get_by_id(user_id)
 
-        # Пользователь уже есть в базе.
+        # === Пользователь уже есть в базе ===
         if user is not None:
             # Запоминаем актуальный ID личного диалога.
             if chat_id is not None and user.chat_id != chat_id:
                 await user_repo.update_chat_id(user_id, chat_id)
+                # Обновляем объект пользователя для корректного меню
+                user = await user_repo.get_by_id(user_id)
 
             if user.status == "left_chat":
                 await event.message.answer(
@@ -50,12 +69,14 @@ def register_start_handler(
 
             if user.role == ROLE_ROOT:
                 await event.message.answer("Root-пользователь уже зарегистрирован.")
+                await _send_user_menu(event, user, context)
                 return
 
             await event.message.answer("Вы уже зарегистрированы в боте.")
+            await _send_user_menu(event, user, context)
             return
 
-        # Пользователя ещё нет в базе.
+        # === Пользователя ещё нет в базе ===
         in_chat = await membership_service.is_user_in_common_chat(user_id)
 
         if not in_chat:
@@ -91,6 +112,11 @@ def register_start_handler(
             "Регистрация прошла успешно.\n"
             "Администратор заполнит вашу карточку."
         )
+
+        # Показываем главное меню новому пользователю
+        new_user = await user_repo.get_by_id(user_id)
+        if new_user is not None:
+            await _send_user_menu(event, new_user, context)
 
         # Уведомляем администраторов и root о новой регистрации.
         admins = await user_repo.get_admins()
