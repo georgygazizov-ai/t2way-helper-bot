@@ -15,6 +15,7 @@ def register_system_handlers(dp: Dispatcher) -> None:
             "/profile — мой профиль\n"
             "/my_trainings — мои тренинги и календарь команды\n"
             "/stats — статистика по тренингам и графики\n"
+            "/admin_broadcast — массовая рассылка (только для админов)\n"
             "/help — справка\n"
             "/ping — проверка связи с ботом"
         )

@@ -33,6 +33,7 @@ from repositories.daily_log_repo import DailyLogRepo
 from jobs.backup_jobs import backup_if_missing, register_backup_jobs
 from handlers.common.stats_handler import register_stats_handlers
 from repositories.report_repo import ReportRepo
+from handlers.admin.broadcast_handler import register_broadcast_handlers
 
 
 logger = logging.getLogger(__name__)
@@ -103,6 +104,7 @@ async def main() -> None:
         register_profile_admin_form_handlers(dp, bot, user_repo, city_repo, macro_repo)
         register_user_profile_handlers(dp, user_repo, city_repo, macro_repo)
         register_roles_handlers(dp, bot, user_repo)
+        register_broadcast_handlers(dp, bot, user_repo, city_repo, macro_repo, settings)
         register_trainings_handlers(
             dp,
             bot,
