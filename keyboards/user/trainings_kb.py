@@ -16,6 +16,9 @@ def get_my_trainings_menu_kb():
     builder.row(
         CallbackButton(text="Календарь команды", payload="mytrain:team")
     )
+    builder.row(
+        CallbackButton(text="🏠 Главное меню", payload="menu:main")
+    )
 
     return builder.as_markup()
 
@@ -41,12 +44,15 @@ def get_trainings_list_kb(items, back_payload: str = "mytrain:menu"):
 
 
 def get_training_card_kb():
-    """Кнопка возврата из карточки тренинга."""
+    """Кнопки возврата из карточки тренинга."""
 
     builder = InlineKeyboardBuilder()
 
     builder.row(
-        CallbackButton(text="« Назад в меню", payload="mytrain:menu")
+        CallbackButton(text="« Назад в меню тренингов", payload="mytrain:menu")
+    )
+    builder.row(
+        CallbackButton(text="🏠 Главное меню", payload="menu:main")
     )
 
     return builder.as_markup()

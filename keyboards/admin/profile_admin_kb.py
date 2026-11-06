@@ -16,6 +16,9 @@ def get_profile_admin_menu_kb():
     builder.row(
         CallbackButton(text="Найти по фамилии", payload="prof:search")
     )
+    builder.row(
+        CallbackButton(text="🏠 Главное меню", payload="menu:main")
+    )
 
     return builder.as_markup()
 

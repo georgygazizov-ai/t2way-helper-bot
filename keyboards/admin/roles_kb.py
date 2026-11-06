@@ -14,6 +14,9 @@ def get_roles_menu_kb():
     builder.row(
         CallbackButton(text="Найти пользователя по фамилии", payload="roles:search")
     )
+    builder.row(
+        CallbackButton(text="🏠 Главное меню", payload="menu:main")
+    )
 
     return builder.as_markup()
 

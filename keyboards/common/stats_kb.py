@@ -13,6 +13,7 @@ def get_stats_menu_kb():
     builder.row(CallbackButton(text="По месяцам", payload="stats:months"))
     builder.row(CallbackButton(text="По форматам", payload="stats:formats"))
     builder.row(CallbackButton(text="Годовой отчёт (CSV)", payload="stats:annual"))
+    builder.row(CallbackButton(text="🏠 Главное меню", payload="menu:main"))
 
     return builder.as_markup()
 
@@ -62,5 +63,6 @@ def get_back_to_stats_menu_kb():
     builder = InlineKeyboardBuilder()
 
     builder.row(CallbackButton(text="« Назад в меню статистики", payload="stats:menu"))
+    builder.row(CallbackButton(text="🏠 Главное меню", payload="menu:main"))
 
     return builder.as_markup()

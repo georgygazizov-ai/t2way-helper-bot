@@ -11,6 +11,9 @@ def get_spravochnik_menu_kb():
     builder.row(
         CallbackButton(text="Управление городами", payload="spr:city_menu"),
     )
+    builder.row(
+        CallbackButton(text="🏠 Главное меню", payload="menu:main"),
+    )
     return builder.as_markup()
 
 

@@ -55,20 +55,22 @@ async def run_root_backup(event, context, current_user, bot, settings: Settings)
         db_copy_path.unlink(missing_ok=True)
 
         uploaded = await bot.upload_media(InputMedia(path=str(zip_path)))
+        from keyboards import menu_kb
         await bot.send_message(
             chat_id=event.message.recipient.chat_id,
             text=f"✅ Резервная копия создана и сохранена в {settings.backup_dir}:",
-            attachments=[uploaded],
+            attachments=[uploaded, menu_kb.get_root_actions_kb()],
         )
 
         logger.info("[ROOT] Ручной бэкап создан и отправлен пользователю %s", current_user.user_id)
 
     except Exception as exc:
         logger.exception("[ERROR] Ошибка при создании ручного бэкапа")
+        from keyboards import menu_kb
         await send_menu(
             event, context,
             f"❌ Ошибка при создании бэкапа: {exc}",
-            None,
+            menu_kb.get_root_actions_kb(),
         )
 
 
@@ -81,11 +83,12 @@ async def run_root_chat_start(event, context, current_user, settings_repo: Setti
     await context.clear()
     await context.set_state(AdminRootStates.waiting_chat_id)
 
+    from keyboards import menu_kb
     await send_menu(
         event, context,
         "Введите новый ID общего чата (число):\n"
         "Для отмены отправьте /cancel",
-        None,
+        menu_kb.get_root_actions_kb(),
     )
 
 
@@ -119,7 +122,8 @@ async def run_root_diagnose(event, context, current_user, user_repo: UserRepo, t
         f"— Задержка: {settings.broadcast_delay_seconds} сек"
     )
 
-    await send_menu(event, context, text, None)
+    from keyboards import menu_kb
+    await send_menu(event, context, text, menu_kb.get_root_actions_kb())
 
 
 def register_root_handlers(
@@ -165,11 +169,12 @@ def register_root_handlers(
 
         logger.info("[ROOT] ID общего чата обновлён на %s пользователем %s", chat_id, current_user.user_id)
 
+        from keyboards import menu_kb
         await send_menu(
             event, context,
             f"✅ ID общего чата обновлён на {chat_id}.\n"
             "Изменение вступит в силу для новых проверок.",
-            None,
+            menu_kb.get_root_actions_kb(),
         )
 
     @dp.message_created(Command("root_chat"))

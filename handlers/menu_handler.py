@@ -94,6 +94,13 @@ def register_menu_handlers(
         await context.clear()
         await _show_menu(event, context, current_user)
 
+    @dp.message_callback(F.callback.payload == "menu:main")
+    async def cb_main_menu(event: MessageCallback, context: MemoryContext, current_user):
+        """Возврат в главное меню с любого экрана."""
+        await delete_callback_message(event)
+        await context.clear()
+        await _show_menu(event, context, current_user)
+
     # === ПОДМЕНЮ ===
 
     @dp.message_callback(F.callback.payload == "menu:admin_menu")
@@ -129,7 +136,7 @@ def register_menu_handlers(
         else:
             url = f"📚 Материалы тренера:\n{url}"
 
-        await send_menu(event, context, url, None)
+        await send_menu(event, context, url, menu_kb.get_back_to_main_kb())
 
     @dp.message_callback(F.callback.payload == "menu:instruction")
     async def cb_instruction(event: MessageCallback, context: MemoryContext, current_user):
@@ -143,7 +150,7 @@ def register_menu_handlers(
         else:
             text = INSTRUCTION_TRAINER
 
-        await send_menu(event, context, text.strip(), None)
+        await send_menu(event, context, text.strip(), menu_kb.get_back_to_main_kb())
 
     # === ПРИВЯЗКА К РЕАЛЬНЫМ ЭКРАНАМ ===
 

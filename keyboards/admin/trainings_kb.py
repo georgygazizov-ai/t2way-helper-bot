@@ -19,6 +19,9 @@ def get_trainings_menu_kb():
     builder.row(
         CallbackButton(text="Назначенные тренинги", payload="train:list_assigned")
     )
+    builder.row(
+        CallbackButton(text="🏠 Главное меню", payload="menu:main")
+    )
 
     return builder.as_markup()
 
@@ -111,6 +114,7 @@ def get_training_view_kb(training_id: int, status: str):
         builder.row(CallbackButton(text="Отменить тренинг", payload=f"train:cancel:{training_id}"))
 
     builder.row(CallbackButton(text="« Назад", payload="train:menu"))
+    builder.row(CallbackButton(text="🏠 Главное меню", payload="menu:main"))
 
     return builder.as_markup()
 

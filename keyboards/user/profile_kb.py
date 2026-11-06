@@ -15,7 +15,7 @@ def get_user_profile_menu_kb():
         CallbackButton(text="Изменить дату рождения", payload="up:edit_birth"),
     )
     builder.row(
-        CallbackButton(text="Закрыть профиль", payload="up:close"),
+        CallbackButton(text="🏠 Главное меню", payload="menu:main"),
     )
 
     return builder.as_markup()

@@ -66,7 +66,7 @@ def get_admin_submenu_kb():
     builder.row(CallbackButton(text="🌍 Справочники", payload="menu:admin_spravochnik"))
     builder.row(CallbackButton(text="🔑 Роли пользователей", payload="menu:admin_roles"))
     builder.row(CallbackButton(text="📣 Массовая рассылка", payload="menu:admin_broadcast"))
-    builder.row(CallbackButton(text="« Назад", payload="menu:back"))
+    builder.row(CallbackButton(text="🏠 Главное меню", payload="menu:main"))
     return builder.as_markup()
 
 def get_root_submenu_kb():
@@ -75,10 +75,23 @@ def get_root_submenu_kb():
     builder.row(CallbackButton(text="💾 Ручной бэкап БД", payload="menu:root_backup"))
     builder.row(CallbackButton(text="💬 Смена ID общего чата", payload="menu:root_chat"))
     builder.row(CallbackButton(text="🔍 Диагностика системы", payload="menu:root_diagnose"))
-    builder.row(CallbackButton(text="« Назад", payload="menu:back"))
+    builder.row(CallbackButton(text="🏠 Главное меню", payload="menu:main"))
     return builder.as_markup()
 
 def get_segment_choice_kb():
     """Дублирует клавиатуру из broadcast_kb для прямого вызова из меню."""
     from keyboards.admin import broadcast_kb
     return broadcast_kb.get_segment_choice_kb()
+
+def get_back_to_main_kb():
+    """Клавиатура с единственной кнопкой 'Главное меню'."""
+    builder = InlineKeyboardBuilder()
+    builder.row(CallbackButton(text="🏠 Главное меню", payload="menu:main"))
+    return builder.as_markup()
+
+def get_root_actions_kb():
+    """Клавиатура после выполнения root-команд: возврат в root-меню и главное меню."""
+    builder = InlineKeyboardBuilder()
+    builder.row(CallbackButton(text="🔧 В root-меню", payload="menu:root_menu"))
+    builder.row(CallbackButton(text="🏠 Главное меню", payload="menu:main"))
+    return builder.as_markup()

@@ -10,6 +10,7 @@ def get_segment_choice_kb():
     builder.row(CallbackButton(text="По макрорегиону", payload="brd:segment:macro"))
     builder.row(CallbackButton(text="По городу", payload="brd:segment:city"))
     builder.row(CallbackButton(text="« Отмена", payload="brd:cancel"))
+    builder.row(CallbackButton(text="🏠 Главное меню", payload="menu:main"))
     return builder.as_markup()
 
 def get_macro_region_choice_kb(regions):
@@ -28,10 +29,12 @@ def get_city_choice_kb(cities):
     builder.row(CallbackButton(text="« Назад", payload="brd:back_to_segment"))
     return builder.as_markup()
 
-def get_cancel_broadcast_kb():
-    """Кнопка отмены рассылки во время FSM."""
+def get_broadcast_preview_kb():
+    """Кнопки подтверждения рассылки."""
     builder = InlineKeyboardBuilder()
+    builder.row(CallbackButton(text="✅ Отправить", payload="brd:confirm_send"))
     builder.row(CallbackButton(text="« Отменить рассылку", payload="brd:cancel"))
+    builder.row(CallbackButton(text="🏠 Главное меню", payload="menu:main"))
     return builder.as_markup()
 
 def get_broadcast_preview_kb():
