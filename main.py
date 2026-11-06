@@ -150,7 +150,7 @@ async def main() -> None:
         register_root_handlers(dp, bot, db, user_repo, training_repo, settings_repo, settings)
         register_menu_handlers(
             dp, settings, user_repo, city_repo, macro_repo,
-            training_repo, report_repo, bot,
+            training_repo, report_repo, bot, settings_repo,
         )
 
         logger.info("[SYSTEM] Обработчики зарегистрированы")

@@ -77,3 +77,8 @@ def get_root_submenu_kb():
     builder.row(CallbackButton(text="🔍 Диагностика системы", payload="menu:root_diagnose"))
     builder.row(CallbackButton(text="« Назад", payload="menu:back"))
     return builder.as_markup()
+
+def get_segment_choice_kb():
+    """Дублирует клавиатуру из broadcast_kb для прямого вызова из меню."""
+    from keyboards.admin import broadcast_kb
+    return broadcast_kb.get_segment_choice_kb()
